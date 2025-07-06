@@ -1,0 +1,11 @@
+autogen
+autogen-agentchat
+autogen-ext
+
+yfinance
+fastapi
+fastmcp
+
+httpx
+openai
+nest-asyncio
