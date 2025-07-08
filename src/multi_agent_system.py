@@ -23,7 +23,6 @@ class MultiAgentSystem:
         Initialize the multi-agent system.
 
         Args:
-            openai_api_key: OpenAI API key (if None, will use environment variable)
             model_name: OpenAI model to use (default: gpt-4o-mini)
             max_turns: Maximum number of turns in the group chat
             mcp_server_url: MCP server URL (if None, will use environment variable or default)
@@ -34,7 +33,7 @@ class MultiAgentSystem:
 
         if not self.openai_api_key:
             raise ValueError(
-                "OpenAI API key must be as OPENAI_API_KEY environment variable")
+                "OpenAI API key must be set as OPENAI_API_KEY environment variable")
 
         if mcp_server_url:
             os.environ["MCP_SERVER_URL"] = mcp_server_url
@@ -76,7 +75,7 @@ class MultiAgentSystem:
             ticker: Stock ticker symbol (e.g., 'AAPL', 'MSFT')
 
         Returns:
-            Analysis result with final recommendation
+            Analysis result
         """
         task = (
             f"Provide an analysis for {ticker}'s performance today "
@@ -98,26 +97,9 @@ class MultiAgentSystem:
         """Clean up resources."""
         await cleanup_mcp_executor()
 
-    def get_agent(self, agent_name: str) -> Optional[AssistantAgent]:
-        """
-        Get a specific agent by name.
-
-        Args:
-            agent_name: Name of the agent ('sentiment_analyst', 'technical_analyst', 'orchestrator')
-
-        Returns:
-            The requested agent or None if not found
-        """
-        return self.agents.get(agent_name)
-
     def list_agents(self) -> List[str]:
         """Get list of all agent names."""
         return list(self.agents.keys())
-
-    def update_max_turns(self, max_turns: int) -> None:
-        """Update the maximum number of turns for the team."""
-        self.max_turns = max_turns
-        self.team = self._create_team()
 
     def get_system_info(self) -> Dict[str, Any]:
         """Get information about the system configuration."""

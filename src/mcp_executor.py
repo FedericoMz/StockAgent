@@ -81,7 +81,6 @@ class MCPToolExecutor:
 # Global instance
 _mcp_executor: Optional[MCPToolExecutor] = None
 
-
 def get_mcp_executor() -> MCPToolExecutor:
     """Get or create the global MCP executor instance."""
     global _mcp_executor
