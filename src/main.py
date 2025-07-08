@@ -88,26 +88,6 @@ async def main():
             except Exception as e:
                 print(f"Error during cleanup: {str(e)}")
 
-
-async def run_analysis_for_ticker(ticker: str = "AAPL"):
-    """
-    Convenience function to run analysis for a specific ticker.
-    Useful for Jupyter notebooks or interactive sessions.
-
-    Args:
-        ticker: Stock ticker symbol to analyze
-
-    Returns:
-        Analysis result
-    """
-    system = MultiAgentSystem()
-    try:
-        result = await system.analyze_stock(ticker)
-        return result
-    finally:
-        await system.cleanup()
-
-
 if __name__ == "__main__":
     try:
         asyncio.run(main())

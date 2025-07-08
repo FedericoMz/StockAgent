@@ -19,7 +19,7 @@ class MCPToolExecutor:
                 import httpx
                 self.client = httpx.AsyncClient(
                     base_url=self.server_url,
-                    timeout=30.0  # Add timeout
+                    timeout=30.0
                 )
 
     async def call_tool(self, name: str, arguments: dict) -> str:
