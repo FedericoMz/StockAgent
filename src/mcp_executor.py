@@ -1,49 +1,75 @@
 import asyncio
 import os
-from typing import Dict, Any, Optional
-
+from typing import Optional
+import httpx
 
 class MCPToolExecutor:
     """
     Handles communication with MCP server for tool execution.
     """
-    
     def __init__(self, server_url: str = "http://localhost:8000"):
         self.server_url = server_url
         self.client = None
         self._client_lock = asyncio.Lock()
-    
+
     async def ensure_connection(self) -> None:
         """Ensure we have a valid connection to the MCP server."""
         async with self._client_lock:
             if self.client is None or self.client.is_closed:
                 import httpx
-                self.client = httpx.AsyncClient(base_url=self.server_url)
-    
-    async def call_tool(self, name: str, arguments: Dict[str, Any]) -> str:
+                self.client = httpx.AsyncClient(
+                    base_url=self.server_url,
+                    timeout=30.0  # Add timeout
+                )
+
+    async def call_tool(self, name: str, arguments: dict) -> str:
         """
-        Call a tool on the MCP server.
-        
-        Args:
-            name: Name of the tool to call
-            arguments: Dictionary of arguments to pass to the tool
-            
-        Returns:
-            Result from the tool execution
+        Call a tool on the MCP server using JSON-RPC 2.0.
         """
-        await self.ensure_connection()
-        
-        try:
-            response = await self.client.post("/tools/call", json={
+        rpc_request = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {
                 "name": name,
                 "arguments": arguments
-            })
+            }
+        }
+
+        async with httpx.AsyncClient(base_url=self.server_url) as client:
+            response = await client.post("/mcp", json=rpc_request)
             response.raise_for_status()
-            result = response.json()
-            return result.get("result", "No result")
-        except Exception as e:
-            return f"Error calling MCP tool: {str(e)}"
-    
+            rpc_response = response.json()
+
+            if rpc_response is None:
+                return "Error: Received None response from MCP server"
+
+            if "error" in rpc_response and rpc_response["error"] is not None:
+                error_info = rpc_response["error"]
+                if isinstance(error_info, dict):
+                    error_message = error_info.get('message', 'Unknown error')
+                    error_code = error_info.get('code', 'Unknown code')
+                    return f"MCP Error [{error_code}]: {error_message}"
+                else:
+                    return f"MCP Error: {error_info}"
+
+            result = rpc_response.get("result")
+            if result is None:
+                return "Error: No result field in MCP response"
+
+            content = result.get("content", [])
+
+            if content and len(content) > 0:
+                first_content = content[0]
+                if first_content and isinstance(first_content, dict):
+                    text_content = first_content.get("text", "No text content available")
+                    return text_content
+                else:
+                    return f"Unexpected content format: {first_content}"
+
+            return f"No content returned. Full result: {result}"
+
+
     async def disconnect(self) -> None:
         """Disconnect from the MCP server."""
         async with self._client_lock:

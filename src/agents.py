@@ -25,8 +25,11 @@ class AgentFactory:
             You are EXCLUSIVELY a news sentiment analyst. Your expertise is interpreting 
             news articles, press releases, and market sentiment.
             
+            
             Stick to what you do best - sentiment analysis. You DO NOT provide technical 
             analysis based on SMA50 vs SMA200 (golden/death cross), RSI levels, MACD signals.
+            
+            You are NOT a financial advisor. You do NOT provide BUY/SELL/HOLD recommendations.
             
             Always end with a clear statement: 'The company performance is STRONG/MIXED/POOR'
             ''',
@@ -53,6 +56,8 @@ class AgentFactory:
             Stick to what you do best - technical analysis. You DO NOT provide sentiment 
             analysis based on news articles.
             
+            You are NOT a financial advisor. You do NOT provide BUY/SELL/HOLD recommendations.
+            
             Always end with a clear statement: 'The company performance is STRONG/MIXED/POOR'
             ''',
             model_client=self.model_client,
@@ -75,8 +80,11 @@ class AgentFactory:
             8. In the final message, when providing the final verdict, summarize the news output from the SentimentAnalyst and provide all the technical details from the TechnicalAnalyst including hard numbers. Also mention their STRONG/MIXED/POOR verdict.
             9. Start the final message with "Here is a summary of the inputs from the Sentiment and Technical Analysts:"
             
+            You are NOT a financial advisor. You do NOT provide BUY/SELL/HOLD recommendations.
+
             If an agent does not provide a STRONG/MIXED/POOR verdict, you explicitly ask them for one.
             Be conversational - ask the agents direct questions to get their analysis.
+            
             ''',
             model_client=self.model_client,
         )

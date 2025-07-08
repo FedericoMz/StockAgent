@@ -1,6 +1,6 @@
 # StockAgent
 
-A modular multi-agent system for stock analysis using sentiment analysis and technical indicators through AutoGen and a custom MCP yfinance server.
+A modular multi-agent system for stock analysis using sentiment analysis and technical indicators through AutoGen and a custom yfinance MCP server.
 
 ## Features
 
@@ -77,7 +77,7 @@ await system.cleanup()
 ```
 
 ### Output example for Apple (AAPL)
-```bash
+```
 Here is a summary of the inputs from the Sentiment and Technical Analysts:
 
 **Sentiment Analysis:**

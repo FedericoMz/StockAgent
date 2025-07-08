@@ -1,56 +1,47 @@
 import asyncio
-from typing import Any
+from typing import Any, Coroutine
 from mcp_executor import get_mcp_executor
 
 
-def _handle_async_call(coro) -> Any:
-    """
-    Handle async calls in both sync and async contexts.
-    Supports nested event loops in Jupyter notebooks.
-    """
-    try:
-        import nest_asyncio
-        nest_asyncio.apply()
-    except ImportError:
-        pass
-    
-    try:
-        loop = asyncio.get_running_loop()
-        task = loop.create_task(coro)
-        while not task.done():
-            pass
-        return task.result()
-    except RuntimeError:
-        return asyncio.run(coro)
+def _handle_async_call(coro: Coroutine) -> Any:
+    return asyncio.run(coro)
 
 
-def news_sentiment_tool(ticker_symbol: str) -> str:
+async def news_sentiment_tool(ticker_symbol: str) -> str:
     """
     Analyze news sentiment for a given stock ticker.
-    
+
     Args:
         ticker_symbol (str): Stock ticker symbol (e.g., 'AAPL', 'MSFT')
-    
+
     Returns:
         str: News sentiment analysis results
     """
-    mcp_executor = get_mcp_executor()
-    return _handle_async_call(
-        mcp_executor.call_tool("news_sentiment_tool", {"ticker_symbol": ticker_symbol})
-    )
+    try:
+        mcp_executor = get_mcp_executor()
+        result = await mcp_executor.call_tool(
+            "news_sentiment_tool", {"ticker_symbol": ticker_symbol}
+        )
+        return result
+    except Exception as e:
+        return f"Error in news_sentiment_tool: {str(e)}"
 
 
-def technical_analysis_tool(ticker_symbol: str) -> str:
+async def technical_analysis_tool(ticker_symbol: str) -> str:
     """
     Perform technical analysis for a given stock ticker.
-    
+
     Args:
         ticker_symbol (str): Stock ticker symbol (e.g., 'AAPL', 'MSFT')
-    
+
     Returns:
         str: Technical analysis indicators
     """
-    mcp_executor = get_mcp_executor()
-    return _handle_async_call(
-        mcp_executor.call_tool("technical_analysis_tool", {"ticker_symbol": ticker_symbol})
-    )
+    try:
+        mcp_executor = get_mcp_executor()
+        result = await mcp_executor.call_tool(
+            "technical_analysis_tool", {"ticker_symbol": ticker_symbol}
+        )
+        return result
+    except Exception as e:
+        return f"Error in technical_analysis_tool: {str(e)}"
