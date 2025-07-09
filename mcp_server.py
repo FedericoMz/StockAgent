@@ -2,7 +2,7 @@ import yfinance as yf
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
 import uvicorn
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Optional, Union, List
 import json
 
 
@@ -55,12 +55,8 @@ def fetch_technical_analysis(ticker_symbol):
     except Exception as e:
         return f"Error fetching technical analysis: {str(e)}"
 
-
-# FastAPI app
 app = FastAPI(title="Financial Analysis MCP Server")
 
-
-# JSON-RPC Models
 class JSONRPCRequest(BaseModel):
     jsonrpc: str = "2.0"
     id: Union[str, int, None] = None
@@ -68,11 +64,17 @@ class JSONRPCRequest(BaseModel):
     params: Optional[Dict[str, Any]] = None
 
 
+class JSONRPCError(BaseModel):
+    code: int
+    message: str
+    data: Optional[Any] = None
+
+
 class JSONRPCResponse(BaseModel):
     jsonrpc: str = "2.0"
     id: Union[str, int, None] = None
     result: Optional[Any] = None
-    error: Optional[Dict[str, Any]] = None
+    error: Optional[JSONRPCError] = None
 
 
 # MCP Tool definitions
@@ -127,7 +129,7 @@ def handle_call_tool(request_id, params):
             if not ticker_symbol:
                 return JSONRPCResponse(
                     id=request_id,
-                    error={"code": -32602, "message": "ticker_symbol is required"}
+                    error=JSONRPCError(code=-32602, message="ticker_symbol is required")
                 )
 
             result = fetch_news_sentiment(ticker_symbol)
@@ -146,7 +148,7 @@ def handle_call_tool(request_id, params):
             if not ticker_symbol:
                 return JSONRPCResponse(
                     id=request_id,
-                    error={"code": -32602, "message": "ticker_symbol is required"}
+                    error=JSONRPCError(code=-32602, message="ticker_symbol is required")
                 )
 
             result = fetch_technical_analysis(ticker_symbol)
@@ -163,15 +165,14 @@ def handle_call_tool(request_id, params):
         else:
             return JSONRPCResponse(
                 id=request_id,
-                error={"code": -32601, "message": f"Unknown tool: {tool_name}"}
+                error=JSONRPCError(code=-32601, message=f"Unknown tool: {tool_name}")
             )
 
     except Exception as e:
         return JSONRPCResponse(
             id=request_id,
-            error={"code": -32603, "message": f"Internal error: {str(e)}"}
+            error=JSONRPCError(code=-32603, message=f"Internal error: {str(e)}")
         )
-
 
 
 def handle_initialize(request_id, params):
@@ -191,39 +192,6 @@ def handle_initialize(request_id, params):
     )
 
 
-@app.post("/mcp")
-@app.post("/")
-async def mcp_endpoint(request: Request):
-    """Single MCP endpoint for all JSON-RPC communication"""
-    try:
-        body = await request.json()
-
-        # Handle single request
-        if isinstance(body, dict):
-            return handle_single_request(body)
-
-        # Handle batch requests
-        elif isinstance(body, list):
-            responses = []
-            for req in body:
-                responses.append(handle_single_request(req))
-            return responses
-
-        else:
-            return JSONRPCResponse(
-                error={"code": -32700, "message": "Parse error"}
-            )
-
-    except json.JSONDecodeError:
-        return JSONRPCResponse(
-            error={"code": -32700, "message": "Parse error"}
-        )
-    except Exception as e:
-        return JSONRPCResponse(
-            error={"code": -32603, "message": f"Internal error: {str(e)}"}
-        )
-
-
 def handle_single_request(body):
     """Handle a single JSON-RPC request"""
     try:
@@ -241,13 +209,57 @@ def handle_single_request(body):
         else:
             return JSONRPCResponse(
                 id=rpc_request.id,
-                error={"code": -32601, "message": f"Method not found: {rpc_request.method}"}
+                error=JSONRPCError(code=-32601, message=f"Method not found: {rpc_request.method}")
             )
 
     except Exception as e:
         return JSONRPCResponse(
-            error={"code": -32603, "message": f"Internal error: {str(e)}"}
+            error=JSONRPCError(code=-32603, message=f"Internal error: {str(e)}")
         )
+
+
+@app.post("/mcp")
+@app.post("/")
+async def mcp_endpoint(request: Request):
+    """Single MCP endpoint for all JSON-RPC communication"""
+    try:
+        body = await request.json()
+
+        # Handle single request
+        if isinstance(body, dict):
+            response = handle_single_request(body)
+            if isinstance(response, JSONRPCResponse):
+                response_dict = response.model_dump(exclude_none=True)
+                return response_dict
+            return response
+
+        # Handle batch requests
+        elif isinstance(body, list):
+            responses = []
+            for req in body:
+                response = handle_single_request(req)
+                if isinstance(response, JSONRPCResponse):
+                    responses.append(response.model_dump(exclude_none=True))
+                else:
+                    responses.append(response)
+            return responses
+
+        else:
+            error_response = JSONRPCResponse(
+                error=JSONRPCError(code=-32700, message="Parse error")
+            )
+            return error_response.model_dump(exclude_none=True)
+
+    except json.JSONDecodeError:
+        error_response = JSONRPCResponse(
+            error=JSONRPCError(code=-32700, message="Parse error")
+        )
+        return error_response.model_dump(exclude_none=True)
+    except Exception as e:
+        error_response = JSONRPCResponse(
+            error=JSONRPCError(code=-32603, message=f"Internal error: {str(e)}")
+        )
+        return error_response.model_dump(exclude_none=True)
 
 
 @app.get("/health")
